@@ -1,0 +1,15 @@
+commands:
+  - label: Run tests & fix all errors
+    prompt: |
+      Run the test suite. Fix every failing test. Do not change anything
+      else.
+
+  - label: Run build & fix all errors
+    prompt: |
+      Run the build command. Fix every build error. Do not change anything
+      else.
+
+pi:
+  provider: anthropic
+  model: sonnet
+  thinking: medium

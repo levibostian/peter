@@ -1,0 +1,57 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@cross/deepmerge@1": "1.0.1",
+    "jsr:@cross/env@^1.0.3": "1.0.3",
+    "jsr:@cross/runtime@1": "1.2.1",
+    "jsr:@levibostian/mock-a-bin@^1.1.0": "1.1.0",
+    "jsr:@levibostian/sh-style@0.9": "0.9.0",
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "jsr:@std/yaml@^1.0.10": "1.0.10"
+  },
+  "jsr": {
+    "@cross/deepmerge@1.0.1": {
+      "integrity": "7a224229f1a463087d62cef8729d26263ed4f5e3c2f2bfec64fc0a16a9dbc754"
+    },
+    "@cross/env@1.0.3": {
+      "integrity": "218d2dd68bec55cf047d1670a8bddc304b9c011a8ad22e647afa916bb796c8b4",
+      "dependencies": [
+        "jsr:@cross/deepmerge",
+        "jsr:@cross/runtime"
+      ]
+    },
+    "@cross/runtime@1.2.1": {
+      "integrity": "f462fcf2fd678f9073291b4e55209b90f58c8d508764a84205d178abdcf22fc9"
+    },
+    "@levibostian/mock-a-bin@1.1.0": {
+      "integrity": "6f0207183f68585378c629e7774cfe0e2a3451be1fce31debab7be14a42fe961"
+    },
+    "@levibostian/sh-style@0.9.0": {
+      "integrity": "92cff3813a9fad3111491d749992bd4d00e0a8ef478a7e306e05ea4e8db392c6",
+      "dependencies": [
+        "jsr:@cross/env"
+      ]
+    },
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
+    "@std/yaml@1.0.10": {
+      "integrity": "245706ea3511cc50c8c6d00339c23ea2ffa27bd2c7ea5445338f8feff31fa58e"
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@levibostian/mock-a-bin@^1.1.0",
+      "jsr:@levibostian/sh-style@0.9",
+      "jsr:@std/assert@1",
+      "jsr:@std/yaml@^1.0.10"
+    ]
+  }
+}

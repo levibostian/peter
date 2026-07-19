@@ -3,23 +3,24 @@ import type { PR } from "./types.ts"
 /**
  * Topologically sort PRs into update order using Kahn's algorithm.
  *
- * A PR's parent is any PR whose headRefName matches this PR's baseRefName
- * (when baseRefName !== defaultBranch). Roots are PRs whose base is the
- * default branch or whose base branch isn't in the PR list.
+ * A PR is a child of another PR when its baseRefName equals that PR's
+ * headRefName. Roots are PRs whose base branch isn't another PR's head
+ * (could be the default branch, a teammate's branch, etc.).
  *
  * Returns branch names in update order (parents before children).
  * Cycles degrade gracefully: remaining nodes appended in arbitrary order.
  */
-export function sortPRs(prs: PR[], defaultBranch: string): string[] {
+export function sortPRs(prs: PR[]): string[] {
   if (prs.length === 0) return []
 
+  const heads = new Set(prs.map((p) => p.headRefName))
+
   // Build adjacency: parent head → child heads
-  const headByBase = new Map<string, string[]>()  // baseRefName → [headRefName]
+  const headByBase = new Map<string, string[]>()
   for (const pr of prs) {
-    const base = pr.baseRefName
-    if (base !== defaultBranch) {
-      if (!headByBase.has(base)) headByBase.set(base, [])
-      headByBase.get(base)!.push(pr.headRefName)
+    if (heads.has(pr.baseRefName)) {
+      if (!headByBase.has(pr.baseRefName)) headByBase.set(pr.baseRefName, [])
+      headByBase.get(pr.baseRefName)!.push(pr.headRefName)
     }
   }
 
@@ -27,8 +28,7 @@ export function sortPRs(prs: PR[], defaultBranch: string): string[] {
   const inDegree = new Map<string, number>()
   for (const pr of prs) inDegree.set(pr.headRefName, 0)
   for (const pr of prs) {
-    const base = pr.baseRefName
-    if (base !== defaultBranch && inDegree.has(base)) {
+    if (heads.has(pr.baseRefName)) {
       // pr's base is another PR's head → pr is a child
       inDegree.set(pr.headRefName, (inDegree.get(pr.headRefName) ?? 0) + 1)
     }

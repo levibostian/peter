@@ -13,7 +13,9 @@ export async function runPiCommand(
   piConfig: PiConfig,
 ): Promise<string | null> {
   textBuffer = "";
-  const args = ["--mode", "json", "--provider", piConfig.provider];
+  const args: string[] = [
+    "--mode", "json", "--provider", piConfig.provider!,
+  ];
   if (piConfig.model) args.push("--model", piConfig.model);
   if (piConfig.thinking) args.push("--thinking", piConfig.thinking);
   args.push(prompt);

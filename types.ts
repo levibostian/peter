@@ -42,7 +42,7 @@ export interface Command {
 
 /** Pi agent config section. */
 export interface PiConfig {
-  provider: string
+  provider?: string
   model?: string
   thinking?: string
 }

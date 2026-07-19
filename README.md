@@ -119,7 +119,12 @@ Commands
 
 ## Configuration
 
-Config lives in `.pr-updater.yaml` (repo root) or `~/.pr-updater.yaml`.
+Config lives in `.pr-updater.yaml` (repo root) or `~/.pr-updater.yaml` (global).
+When both exist they merge: commands and postCheckout arrays concatenate
+global-first, pi fields merge individually so local can override
+`model`/`thinking` without repeating `provider`.
+
+| Field | Required | Description |
 
 | Field | Required | Description |
 |-------|----------|-------------|

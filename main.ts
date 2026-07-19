@@ -9,15 +9,37 @@ import type { PR, CheckRun, Config } from "./types.ts"
 export type InputReader = () => string | null
 
 /** Default reader: reads one line from stdin, returns null on EOF. */
-export function readLine(): string | null {
-  const buf = new Uint8Array(1024)
-  try {
-    const n = Deno.stdin.readSync(buf)
-    if (n === null || n === 0) return null
-    return new TextDecoder().decode(buf.subarray(0, n)).trim()
-  } catch {
+export function readInput(): string | null {
+  const enc = new TextEncoder()
+  Deno.stdout.writeSync(enc.encode("> "))
+
+  Deno.stdin.setRaw(true)
+  const buf = new Uint8Array(1)
+  const n = Deno.stdin.readSync(buf)
+  Deno.stdin.setRaw(false)
+
+  if (n === null || n === 0) {
+    console.log()
     return null
   }
+
+  const byte = buf[0]
+
+  if (byte === 3) {
+    // Ctrl+C
+    console.log()
+    Deno.exit(0)
+  }
+
+  if (byte === 10 || byte === 13) {
+    // Enter → no-op
+    console.log()
+    return ""
+  }
+
+  const char = String.fromCharCode(byte)
+  console.log(char)
+  return char
 }
 
 // ---------------------------------------------------------------------------
@@ -128,9 +150,9 @@ export interface InteractiveOptions {
   logger?: LoggerInstance
 }
 
-export function interactiveMain(options: InteractiveOptions): void {
+export async function interactiveMain(options: InteractiveOptions): Promise<void> {
   const { prs, ordered, config } = options
-  const readInput = options.inputReader ?? readLine
+  const reader = options.inputReader ?? readInput
   const log = options.logger ?? createLogger()
 
   if (prs.length === 0) {
@@ -171,13 +193,13 @@ export function interactiveMain(options: InteractiveOptions): void {
 
     // Menu loop
     for (;;) {
-      const input = readInput()
+      const input = reader()
       if (input === null || input === "q") return
       if (input === "c") break
 
       const cmdIndex = parseInt(input ?? "", 10) - 1
       if (cmdIndex >= 0 && cmdIndex < commands.length) {
-        const sessionId = runPiCommand(commands[cmdIndex].prompt, config.pi)
+        const sessionId = await runPiCommand(commands[cmdIndex].prompt, config.pi)
         if (sessionId) {
           log.msg(`\u2713 Done. Session: ${sessionId}`)
         }
@@ -200,7 +222,7 @@ export function interactiveMain(options: InteractiveOptions): void {
 // CLI entry point
 // ---------------------------------------------------------------------------
 
-function main() {
+async function main() {
   let config: Config
   try {
     config = loadConfig()
@@ -215,7 +237,7 @@ function main() {
   const prs = fetchOpenPRs()
   const ordered = sortPRs(prs)
 
-  interactiveMain({ prs, ordered, config })
+  await interactiveMain({ prs, ordered, config })
 }
 
 if (import.meta.main) {

@@ -11,7 +11,7 @@ Deno.test("runPiCommand — extracts session ID from pi JSON output", async () =
     exit 0
   `)
   try {
-    const sessionId = runPiCommand("test prompt", testConfig)
+    const sessionId = await runPiCommand("test prompt", testConfig)
     assertEquals(sessionId, "019f7a23-76cc-7a39-be39-a475bac32547")
   } finally {
     cleanup()
@@ -29,7 +29,7 @@ Deno.test("runPiCommand — passes model and thinking when set", async () => {
       model: "sonnet",
       thinking: "medium",
     }
-    const sessionId = runPiCommand("test prompt", config)
+    const sessionId = await runPiCommand("test prompt", config)
     assertEquals(sessionId, "test-session")
   } finally {
     cleanup()
@@ -42,7 +42,7 @@ Deno.test("runPiCommand — returns null on pi failure", async () => {
     exit 1
   `)
   try {
-    const sessionId = runPiCommand("test prompt", testConfig)
+    const sessionId = await runPiCommand("test prompt", testConfig)
     assertEquals(sessionId, null)
   } finally {
     cleanup()
@@ -55,7 +55,7 @@ Deno.test("runPiCommand — returns null on missing session ID", async () => {
     exit 0
   `)
   try {
-    const sessionId = runPiCommand("test prompt", testConfig)
+    const sessionId = await runPiCommand("test prompt", testConfig)
     assertEquals(sessionId, null)
   } finally {
     cleanup()

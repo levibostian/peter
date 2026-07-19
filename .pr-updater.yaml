@@ -1,15 +1,9 @@
 commands:
-  - label: Run tests & fix all errors
+  - label: Build & test 
     prompt: |
-      Run the test suite. Fix every failing test. Do not change anything
-      else.
-
-  - label: Run build & fix all errors
-    prompt: |
-      Run the build command. Fix every build error. Do not change anything
-      else.
+      Run the compile/build & test suite. Fix every failing test and build error. Do not stop until the build compiles and test suite both pass. Do not change anything else.
 
 pi:
-  provider: anthropic
-  model: sonnet
+  provider: openrouter
+  model: deepseek/deepseek-v4-flash
   thinking: medium

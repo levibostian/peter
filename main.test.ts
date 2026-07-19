@@ -50,7 +50,7 @@ async function runWithMocks(
   const cleanupGit = await mockBin("git", "bash", gitScript)
 
   try {
-    interactiveMain({ prs, ordered, config: testConfig, inputReader, logger })
+    await interactiveMain({ prs, ordered, config: testConfig, inputReader, logger })
   } finally {
     cleanupGh()
     cleanupGit()
@@ -93,11 +93,11 @@ const GIT_OK_SCRIPT = `
   esac
 `
 
-Deno.test("interactiveMain — no PRs exits quietly", () => {
+Deno.test("interactiveMain — no PRs exits quietly", async () => {
   const { log: testLogger, lines } = captureLogger()
   const logger = createLogger({ logger: testLogger })
 
-  interactiveMain({ prs: [], ordered: [], config: testConfig, inputReader: () => null, logger })
+  await interactiveMain({ prs: [], ordered: [], config: testConfig, inputReader: () => null, logger })
 
   assert(lines.some((l) => l.includes("No open PRs")), "should print no PRs message")
 })
@@ -227,7 +227,7 @@ Deno.test("interactiveMain — menu re-prompts on invalid input", async () => {
   const cleanupGit = await mockBin("git", "bash", GIT_OK_SCRIPT)
 
   try {
-    interactiveMain({ prs, ordered: ["feat/a"], config: testConfig, inputReader, logger })
+    await interactiveMain({ prs, ordered: ["feat/a"], config: testConfig, inputReader, logger })
   } finally {
     cleanupGh()
     cleanupGit()
@@ -302,7 +302,7 @@ Deno.test("interactiveMain — no commands shows navigation only", async () => {
   const emptyCmdsConfig = { ...testConfig, commands: [] }
 
   try {
-    interactiveMain({ prs, ordered: ["feat/a"], config: emptyCmdsConfig, inputReader, logger })
+    await interactiveMain({ prs, ordered: ["feat/a"], config: emptyCmdsConfig, inputReader, logger })
   } finally {
     cleanupGh()
     cleanupGit()

@@ -1,0 +1,44 @@
+on: 
+  push:
+    branches: [main]
+  # This tool encourages you to run it on pull requests to test the deployment process.
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # If your deploy script that you write needs to push a git commit, git tag, or create a GitHub Release.
+      pull-requests: write # If you enable pull request comments (they are enabled by default).
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+      
+      - uses: levibostian/decaf@0.16.0
+        id: decaf
+        env:
+          # required to use 'gh' CLI in my step scripts. 
+          GH_TOKEN: ${{ github.token }}      
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          get_latest_release_current_branch: deno run --allow-all --quiet jsr:@levibostian/decaf-script-github-releases get
+          get_next_release_version: deno run --allow-all --quiet jsr:@levibostian/decaf-script-conventional-commits
+          deploy: |
+            # Compile binaries for each platform. Naming with Rust target triples so mise auto-detects OS/arch.
+            deno compile --allow-read --allow-env --allow-run --output peter-x86_64-unknown-linux-gnu --target x86_64-unknown-linux-gnu main.ts
+            deno compile --allow-read --allow-env --allow-run --output peter-aarch64-unknown-linux-gnu --target aarch64-unknown-linux-gnu main.ts
+            deno compile --allow-read --allow-env --allow-run --output peter-x86_64-apple-darwin --target x86_64-apple-darwin main.ts
+            deno compile --allow-read --allow-env --allow-run --output peter-aarch64-apple-darwin --target aarch64-apple-darwin main.ts
+
+            deno run --allow-all --quiet jsr:@levibostian/decaf-script-github-releases set-github-release-assets \
+              peter-x86_64-unknown-linux-gnu \
+              peter-aarch64-unknown-linux-gnu \
+              peter-x86_64-apple-darwin \
+              peter-aarch64-apple-darwin
+            deno run --allow-all --quiet jsr:@levibostian/decaf-script-github-releases set
+
+            

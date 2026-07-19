@@ -44,14 +44,17 @@ This tool automates the mechanical parts. For each PR it:
 
 ## Prerequisites
 
-- [Deno](https://deno.com/)
 - [GitHub CLI (`gh`)](https://cli.github.com/) — authenticated
 - [`pi`](https://github.com/earendil-works/pi-coding-agent) — on PATH
+- [mise](https://mise.jdx.dev/) — to install peter
 
 ## Quick start
 
 ```bash
-# 1. Create a config file in your repo
+# 1. Install
+mise use -g github:levibostian/peter
+
+# 2. Create a config file in your repo
 cat > .peter.yaml << 'EOF'
 commands:
   - label: Build & test
@@ -70,13 +73,13 @@ pi:
   thinking: medium
 EOF
 
-# 2. Run
-deno task start
+# 3. Run
+peter
 ```
 
 ## Usage
 
-Run `deno task start` from any git repo that has open PRs. The tool:
+Run `peter` from any git repo that has open PRs. The tool:
 
 1. **Fetches** all open PRs and orders them (parents before children for
    stacked branches).

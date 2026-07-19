@@ -29,11 +29,6 @@ export interface Review {
   author: string
 }
 
-/** Enriched per-branch status from `gh pr view`. */
-export interface PRWithStatus extends PR {
-  behindCount: number
-}
-
 /** User-configured command from YAML. */
 export interface Command {
   label: string

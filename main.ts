@@ -12,31 +12,14 @@ export type InputReader = () => string | null
 export function readInput(): string | null {
   const enc = new TextEncoder()
   Deno.stdout.writeSync(enc.encode("> "))
-
   Deno.stdin.setRaw(true)
   const buf = new Uint8Array(1)
   const n = Deno.stdin.readSync(buf)
   Deno.stdin.setRaw(false)
-
-  if (n === null || n === 0) {
-    console.log()
-    return null
-  }
-
+  if (n === null || n === 0) { console.log(); return null }
   const byte = buf[0]
-
-  if (byte === 3) {
-    // Ctrl+C
-    console.log()
-    Deno.exit(0)
-  }
-
-  if (byte === 10 || byte === 13) {
-    // Enter → no-op
-    console.log()
-    return ""
-  }
-
+  if (byte === 3) { console.log(); Deno.exit(0) }
+  if (byte === 10 || byte === 13) { console.log(); return "" }
   const char = String.fromCharCode(byte)
   console.log(char)
   return char

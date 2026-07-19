@@ -12,7 +12,6 @@ export async function runPiCommand(
   prompt: string,
   piConfig: PiConfig,
 ): Promise<string | null> {
-  textBuffer = "";
   const args: string[] = [
     "--mode", "json", "--provider", piConfig.provider!,
   ];
@@ -40,6 +39,7 @@ export async function runPiCommand(
   const decoder = new TextDecoder();
   let buffer = "";
   let sessionId: string | null = null;
+  let textBuffer = "";
 
   for (;;) {
     const { done, value } = await reader.read();
@@ -51,12 +51,12 @@ export async function runPiCommand(
 
     for (const line of lines) {
       if (!line.trim()) continue;
-      const event = parseEvent(line);
-      if (!event) continue;
+      let event: Record<string, unknown>;
+      try { event = JSON.parse(line); } catch { continue; }
       if (event.type === "session" && typeof event.id === "string") {
         sessionId = event.id;
       }
-      showProgress(event);
+      textBuffer = showProgress(event, textBuffer);
     }
   }
 
@@ -64,8 +64,15 @@ export async function runPiCommand(
   reader.releaseLock();
 
   if (!status.success) {
-    const stderr = await collectStderr(process);
-    console.warn(`warning: pi command failed: ${stderr}`);
+    const stderrReader = process.stderr.getReader();
+    const stderrChunks: Uint8Array[] = [];
+    for (;;) { const { done, value } = await stderrReader.read(); if (done) break; stderrChunks.push(value); }
+    stderrReader.releaseLock();
+    const total = stderrChunks.reduce((s, c) => s + c.length, 0);
+    const buf = new Uint8Array(total);
+    let off = 0;
+    for (const c of stderrChunks) { buf.set(c, off); off += c.length; }
+    console.warn(`warning: pi command failed: ${decoder.decode(buf).trim()}`);
     return null;
   }
 
@@ -79,20 +86,8 @@ export async function runPiCommand(
   return sessionId;
 }
 
-/** Parse one JSON line, return null on failure. */
-function parseEvent(line: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(line) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-/** Buffer for incomplete text line from streaming deltas. */
-let textBuffer = "";
-
-/** Show a single progress line for the user. */
-function showProgress(event: Record<string, unknown>): void {
+/** Show a single progress line for the user. Returns updated textBuffer. */
+function showProgress(event: Record<string, unknown>, textBuffer: string): string {
   switch (event.type) {
     case "tool_execution_start":
       // Finalize any pending text before showing next tool
@@ -146,34 +141,10 @@ function showProgress(event: Record<string, unknown>): void {
       break;
     }
   }
+  return textBuffer;
 }
 
 /** Write a line to stdout (cleared after command finishes). */
 function writeLine(text: string): void {
   Deno.stdout.writeSync(enc.encode(text + "\n"));
-}
-
-/** Collect stderr from a finished child process. */
-async function collectStderr(process: Deno.ChildProcess): Promise<string> {
-  const reader = process.stderr.getReader();
-  const decoder = new TextDecoder();
-  const chunks: Uint8Array[] = [];
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-  }
-  reader.releaseLock();
-  return decoder.decode(concatUint8(chunks)).trim();
-}
-
-function concatUint8(chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((s, c) => s + c.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) {
-    result.set(c, offset);
-    offset += c.length;
-  }
-  return result;
 }

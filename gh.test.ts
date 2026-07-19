@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert"
 import { mockBin } from "@levibostian/mock-a-bin"
-import { fetchDefaultBranch, fetchOpenPRs, fetchPRStatus } from "./gh.ts"
+import { fetchOpenPRs, fetchPRStatus } from "./gh.ts"
 
 Deno.test("fetchOpenPRs — returns parsed PRs", async () => {
   const cleanup = await mockBin("gh", "bash", `
@@ -22,18 +22,6 @@ Deno.test("fetchOpenPRs — returns empty array on no PRs", async () => {
   try {
     const prs = fetchOpenPRs()
     assertEquals(prs, [])
-  } finally {
-    cleanup()
-  }
-})
-
-Deno.test("fetchDefaultBranch — returns branch name", async () => {
-  const cleanup = await mockBin("gh", "bash", `
-    echo '{"defaultBranch":"main"}'
-  `)
-  try {
-    const branch = fetchDefaultBranch()
-    assertEquals(branch, "main")
   } finally {
     cleanup()
   }

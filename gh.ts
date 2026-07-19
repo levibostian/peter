@@ -36,12 +36,6 @@ export function fetchOpenPRs(): PR[] {
   }))
 }
 
-/** Detect the repo's default branch name. */
-export function fetchDefaultBranch(): string {
-  const json = gh(["repo", "view", "--json", "defaultBranch"])
-  return (JSON.parse(json) as { defaultBranch: string }).defaultBranch
-}
-
 /** Fetch enriched status for a specific PR number. */
 export function fetchPRStatus(number: number): PR {
   const json = gh([

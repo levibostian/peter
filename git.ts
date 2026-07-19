@@ -39,3 +39,49 @@ export function countBehindBase(headRefOid: string, baseBranch: string): number 
   const count = parseInt(countStr, 10)
   return Number.isNaN(count) ? 0 : count
 }
+
+export interface WorktreeEntry {
+  path: string
+  branch: string | null
+}
+
+/**
+ * Parse `git worktree list --porcelain` into structured entries.
+ * Returns empty array on any failure (not a git repo, old git, etc.).
+ */
+export function listWorktrees(): WorktreeEntry[] {
+  const cmd = new Deno.Command("git", {
+    args: ["worktree", "list", "--porcelain"],
+    stdout: "piped",
+    stderr: "null",
+  })
+  const out = cmd.outputSync()
+  if (!out.success) return []
+
+  const text = new TextDecoder().decode(out.stdout)
+  const entries: WorktreeEntry[] = []
+  let current: Partial<WorktreeEntry> | null = null
+
+  for (const line of text.split("\n")) {
+    if (line.startsWith("worktree ")) {
+      if (current?.path) entries.push(current as WorktreeEntry)
+      current = { path: line.slice(9), branch: null }
+    } else if (line.startsWith("branch refs/heads/") && current) {
+      current.branch = line.slice(18)
+    }
+  }
+  if (current?.path) entries.push(current as WorktreeEntry)
+
+  return entries
+}
+
+/**
+ * Find the worktree directory where a branch is checked out, or null
+ * if the branch isn't checked out in any worktree.
+ */
+export function findWorktreeDir(branch: string): string | null {
+  for (const entry of listWorktrees()) {
+    if (entry.branch === branch) return entry.path
+  }
+  return null
+}

@@ -1,7 +1,7 @@
 import { loadConfig, ConfigError } from "./config.ts"
 import { fetchOpenPRs, fetchPRStatus } from "./gh.ts"
 import { sortPRs } from "./order.ts"
-import { gitCheckout, countBehindBase } from "./git.ts"
+import { gitCheckout, countBehindBase, findWorktreeDir } from "./git.ts"
 import { runPiCommand } from "./pi.ts"
 import { createLogger, type LoggerInstance } from "@levibostian/sh-style"
 import type { PR, CheckRun, Config } from "./types.ts"
@@ -167,6 +167,12 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
     const branch = ordered[i]
     const pr = prByHead.get(branch)
     if (!pr) continue
+
+    // Resolve worktree directory (if branch is checked out in another worktree)
+    const worktreeDir = findWorktreeDir(branch)
+    if (worktreeDir && Deno.cwd() !== worktreeDir) {
+      Deno.chdir(worktreeDir)
+    }
 
     // Checkout
     if (!gitCheckout(branch)) {

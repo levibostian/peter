@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert"
 import { mockBin } from "@levibostian/mock-a-bin"
-import { gitCheckout, countBehindBase } from "./git.ts"
+import { gitCheckout, countBehindBase, listWorktrees, findWorktreeDir } from "./git.ts"
 
 Deno.test("gitCheckout — returns true on success", async () => {
   const cleanup = await mockBin("git", "bash", `
@@ -91,6 +91,128 @@ Deno.test("countBehindBase — returns 0 when not a number", async () => {
   try {
     const count = countBehindBase("abc123", "main")
     assertEquals(count, 0)
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("listWorktrees — parses porcelain output into entries", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree)
+        echo "worktree /Users/me/code/main"
+        echo "HEAD a1b2c3"
+        echo "branch refs/heads/main"
+        echo ""
+        echo "worktree /Users/me/code/feat-x"
+        echo "HEAD d4e5f6"
+        echo "branch refs/heads/feat/x"
+        exit 0
+        ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const entries = listWorktrees()
+    assertEquals(entries.length, 2)
+    assertEquals(entries[0].path, "/Users/me/code/main")
+    assertEquals(entries[0].branch, "main")
+    assertEquals(entries[1].path, "/Users/me/code/feat-x")
+    assertEquals(entries[1].branch, "feat/x")
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("listWorktrees — returns empty on failure", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree) echo "fatal: not a git repository" >&2; exit 1 ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const entries = listWorktrees()
+    assertEquals(entries, [])
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("findWorktreeDir — returns path for known branch", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree)
+        echo "worktree /Users/me/code/main"
+        echo "HEAD a1b2c3"
+        echo "branch refs/heads/main"
+        echo ""
+        echo "worktree /Users/me/code/feat-x"
+        echo "HEAD d4e5f6"
+        echo "branch refs/heads/feat/x"
+        exit 0
+        ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const dir = findWorktreeDir("feat/x")
+    assertEquals(dir, "/Users/me/code/feat-x")
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("findWorktreeDir — returns null for unknown branch", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree)
+        echo "worktree /Users/me/code/main"
+        echo "HEAD a1b2c3"
+        echo "branch refs/heads/main"
+        exit 0
+        ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const dir = findWorktreeDir("nonexistent")
+    assertEquals(dir, null)
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("findWorktreeDir — returns null when worktree list fails", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree) echo "fatal: not a git repository" >&2; exit 1 ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const dir = findWorktreeDir("feat/x")
+    assertEquals(dir, null)
+  } finally {
+    cleanup()
+  }
+})
+
+Deno.test("findWorktreeDir — returns null for detached worktree", async () => {
+  const cleanup = await mockBin("git", "bash", `
+    case "$1" in
+      worktree)
+        echo "worktree /Users/me/code/feature"
+        echo "HEAD a1b2c3"
+        echo "detached"
+        exit 0
+        ;;
+      *) exit 1 ;;
+    esac
+  `)
+  try {
+    const dir = findWorktreeDir("feat/x")
+    assertEquals(dir, null)
   } finally {
     cleanup()
   }

@@ -1,0 +1,2 @@
+- Run tests: `deno task test`
+- Build: `deno task check` (doesn't actually build, but checks for errors)

@@ -52,9 +52,14 @@ function checkSymbol(state: string): string {
       return "✓"
     case "FAILURE":
     case "ERROR":
+    case "CANCELLED":
       return "✗"
     case "PENDING":
     case "EXPECTED":
+    case "QUEUED":
+    case "IN_PROGRESS":
+    case "WAITING":
+    case "NEUTRAL":
       return "●"
     default:
       return "?"
@@ -92,10 +97,10 @@ function renderStatusPanel(
 
   // Checks
   if (pr.statusCheckRollup.length > 0) {
-    const parts = pr.statusCheckRollup.map(
-      (c: CheckRun) => `${checkSymbol(c.state)} ${c.name}`,
+    const lines = pr.statusCheckRollup.map(
+      (c: CheckRun) => `  ${checkSymbol(c.state)} ${c.name}`,
     )
-    log.msg(`checks:  ${parts.join("  ")}`)
+    log.msg(`checks:\n${lines.join("\n")}`)
   }
 
   // Merge

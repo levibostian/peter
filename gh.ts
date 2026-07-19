@@ -1,4 +1,4 @@
-import type { PR } from "./types.ts"
+import type { CheckRun, PR } from "./types.ts"
 
 /** Run a gh CLI command and return stdout as string. Throws on non-zero exit. */
 function gh(args: string[]): string {
@@ -11,6 +11,18 @@ function gh(args: string[]): string {
   return new TextDecoder().decode(out.stdout).trim()
 }
 
+/** Normalize gh API items (CheckRun/StatusContext) into consistent {name, state}. */
+function normalizeChecks(items: unknown[]): CheckRun[] {
+  return (items as Record<string, unknown>[]).map((raw) => {
+    if (raw.__typename === "StatusContext") {
+      return { name: raw.context as string, state: raw.state as string }
+    }
+    // CheckRun — conclusion holds the result, status holds progress
+    const state = ((raw.conclusion ?? raw.status) ?? "UNKNOWN") as string
+    return { name: raw.name as string, state }
+  })
+}
+
 /** Fetch all open PRs for the current repo. */
 export function fetchOpenPRs(): PR[] {
   const json = gh([
@@ -18,7 +30,10 @@ export function fetchOpenPRs(): PR[] {
     "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,mergeable",
   ])
   if (json === "") return []
-  return JSON.parse(json) as PR[]
+  return (JSON.parse(json) as PR[]).map((pr) => ({
+    ...pr,
+    statusCheckRollup: normalizeChecks(pr.statusCheckRollup as unknown as unknown[]),
+  }))
 }
 
 /** Detect the repo's default branch name. */
@@ -33,5 +48,7 @@ export function fetchPRStatus(number: number): PR {
     "pr", "view", String(number),
     "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,mergeable,url",
   ])
-  return JSON.parse(json) as PR
+  const pr = JSON.parse(json) as PR
+  pr.statusCheckRollup = normalizeChecks(pr.statusCheckRollup as unknown as unknown[])
+  return pr
 }

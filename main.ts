@@ -102,23 +102,18 @@ function renderStatusPanel(
 
   // Branch list (only if more than one branch)
   if (ordered.length > 1) {
-    log.msg(subSep)
-    log.msg("Branches")
-    log.msg(subSep)
-    for (let i = 0; i < ordered.length; i++) {
+    const lines = ordered.map((b, i) => {
       const marker = i === index - 1 ? "\u2192" : " "
-      log.msg(`  ${marker} ${ordered[i]}`)
-    }
+      return `  ${marker} ${b}`
+    })
+    log.msg(subSep + "\n" + "Branches" + "\n" + subSep)
+    log.msg(lines.join("\n"))
   }
 
-  log.msg(subSep)
-  log.msg("Commands")
-  log.msg(subSep)
-  for (let i = 0; i < commands.length; i++) {
-    log.msg(`  ${i + 1}  ${commands[i].label}`)
-  }
-  log.msg("  c  Next branch")
-  log.msg("  q  Quit")
+  log.msg(subSep + "\n" + "Commands" + "\n" + subSep)
+  const cmdLines = commands.map((c, i) => `  ${i + 1}  ${c.label}`)
+  cmdLines.push("  c  Next branch", "  q  Quit")
+  log.msg(cmdLines.join("\n"))
 }
 
 // ---------------------------------------------------------------------------

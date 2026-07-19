@@ -1,7 +1,7 @@
 import { assert } from "@std/assert"
 import { mockBin } from "@levibostian/mock-a-bin"
 import { createLogger, type Logger } from "@levibostian/sh-style"
-import { interactiveMain } from "./main.ts"
+import { interactiveMain, runPostCheckoutCommands } from "./main.ts"
 import type { PR, Config } from "./types.ts"
 
 /** Default config fixture for tests. */
@@ -313,4 +313,55 @@ Deno.test("interactiveMain — no commands shows navigation only", async () => {
   assert(all.includes("q  Quit"), "should show quit")
   // No numbered commands should appear
   assert(!all.includes("1  "), "should not show any numbered commands")
+})
+
+// ---------------------------------------------------------------------------
+// Post-checkout
+// ---------------------------------------------------------------------------
+
+Deno.test("runPostCheckoutCommands — runs all commands successfully", () => {
+  const { log: testLogger, lines } = captureLogger()
+  const logger = createLogger({ logger: testLogger })
+
+  const result = runPostCheckoutCommands(["true", "echo ok"], logger)
+
+  assert(result, "should return true when all commands succeed")
+})
+
+Deno.test("runPostCheckoutCommands — stops at first failure", () => {
+  const { log: testLogger, lines } = captureLogger()
+  const logger = createLogger({ logger: testLogger })
+
+  const result = runPostCheckoutCommands(["true", "false", "echo should-not-run"], logger)
+
+  assert(!result, "should return false when a command fails")
+})
+
+Deno.test("interactiveMain — runs post-checkout commands after checkout", async () => {
+  const prs = [
+    makePR({ number: 1, headRefName: "feat/a" }),
+  ]
+
+  const inputReader = () => "c"
+  const { log: testLogger, lines } = captureLogger()
+  const logger = createLogger({ logger: testLogger })
+
+  const cleanupGh = await mockBin("gh", "bash", ghScriptWithPRs(prs))
+  const cleanupGit = await mockBin("git", "bash", GIT_OK_SCRIPT)
+
+  const configWithPostCheckout: Config = {
+    ...testConfig,
+    postCheckout: ["echo post-checkout-ran"],
+  }
+
+  try {
+    await interactiveMain({ prs, ordered: ["feat/a"], config: configWithPostCheckout, inputReader, logger })
+  } finally {
+    cleanupGh()
+    cleanupGit()
+  }
+
+  // The post-checkout command output goes to stdout (inherit), not through logger
+  // Test by verifying the flow completed (PR panel shown)
+  assert(lines.some((l) => l.includes("PR #1")), "should process PR after post-checkout")
 })

@@ -164,6 +164,102 @@ pi:
   })
 })
 
+Deno.test("loadConfig — parses optional postCheckout array", () => {
+  withTempDir((dir) => {
+    const yaml = `commands:
+  - label: Test
+    prompt: Run tests
+pi:
+  provider: anthropic
+postCheckout:
+  - npm install
+  - npm run build
+`
+    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+
+    const origCwd = Deno.cwd()
+    Deno.chdir(dir)
+    try {
+      const cfg = loadConfig()
+      assertEquals(cfg.postCheckout, ["npm install", "npm run build"])
+    } finally {
+      Deno.chdir(origCwd)
+    }
+  })
+})
+
+Deno.test("loadConfig — postCheckout is optional", () => {
+  withTempDir((dir) => {
+    const yaml = `commands:
+  - label: Test
+    prompt: Run tests
+pi:
+  provider: anthropic
+`
+    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+
+    const origCwd = Deno.cwd()
+    Deno.chdir(dir)
+    try {
+      const cfg = loadConfig()
+      assertEquals(cfg.postCheckout, undefined)
+    } finally {
+      Deno.chdir(origCwd)
+    }
+  })
+})
+
+Deno.test("loadConfig — errors when postCheckout is not an array", () => {
+  withTempDir((dir) => {
+    const yaml = `commands:
+  - label: Test
+    prompt: Run tests
+pi:
+  provider: anthropic
+postCheckout: npm install
+`
+    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+
+    const origCwd = Deno.cwd()
+    Deno.chdir(dir)
+    try {
+      assertThrows(
+        () => loadConfig(),
+        ConfigError,
+        "postCheckout must be an array of strings",
+      )
+    } finally {
+      Deno.chdir(origCwd)
+    }
+  })
+})
+
+Deno.test("loadConfig — errors on empty postCheckout entry", () => {
+  withTempDir((dir) => {
+    const yaml = `commands:
+  - label: Test
+    prompt: Run tests
+pi:
+  provider: anthropic
+postCheckout:
+  - ""
+`
+    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+
+    const origCwd = Deno.cwd()
+    Deno.chdir(dir)
+    try {
+      assertThrows(
+        () => loadConfig(),
+        ConfigError,
+        "postCheckout[0] must be a non-empty string",
+      )
+    } finally {
+      Deno.chdir(origCwd)
+    }
+  })
+})
+
 Deno.test("loadConfig — errors on YAML parse failure", () => {
   withTempDir((dir) => {
     fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), "{{invalid")

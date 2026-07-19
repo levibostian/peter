@@ -144,6 +144,27 @@ function renderStatusPanel(
 }
 
 // ---------------------------------------------------------------------------
+// Post-checkout commands
+// ---------------------------------------------------------------------------
+
+/** Run shell commands after a successful checkout. Stops at first failure. */
+export function runPostCheckoutCommands(commands: string[], log: LoggerInstance): boolean {
+  for (const cmd of commands) {
+    const proc = new Deno.Command("sh", {
+      args: ["-c", cmd],
+      stdout: "inherit",
+      stderr: "inherit",
+    })
+    const out = proc.outputSync()
+    if (!out.success) {
+      log.warn(`Post-checkout command failed: ${cmd}`)
+      return false
+    }
+  }
+  return true
+}
+
+// ---------------------------------------------------------------------------
 // Interactive loop
 // ---------------------------------------------------------------------------
 
@@ -183,6 +204,11 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
     if (!gitCheckout(branch)) {
       log.warn(`Checkout failed for ${branch}, skipping`)
       continue
+    }
+
+    // Run post-checkout commands
+    if (config.postCheckout && config.postCheckout.length > 0) {
+      runPostCheckoutCommands(config.postCheckout, log)
     }
 
     // Fetch fresh PR status

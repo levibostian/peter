@@ -51,4 +51,6 @@ export interface PiConfig {
 export interface Config {
   commands: Command[]
   pi: PiConfig
+  /** Shell commands to run after a successful git checkout (optional). */
+  postCheckout?: string[]
 }

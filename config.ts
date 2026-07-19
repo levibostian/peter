@@ -66,6 +66,19 @@ export function loadConfig(): Config {
     }
   }
 
+  // Validate optional postCheckout
+  const rawPostCheckout = parsed["postCheckout"]
+  if (rawPostCheckout !== undefined) {
+    if (!Array.isArray(rawPostCheckout)) {
+      throw new ConfigError(`${usedPath} postCheckout must be an array of strings`)
+    }
+    for (let i = 0; i < rawPostCheckout.length; i++) {
+      if (typeof rawPostCheckout[i] !== "string" || rawPostCheckout[i] === "") {
+        throw new ConfigError(`${usedPath} postCheckout[${i}] must be a non-empty string`)
+      }
+    }
+  }
+
   return {
     commands: commands as Config["commands"],
     pi: {
@@ -73,5 +86,6 @@ export function loadConfig(): Config {
       model: typeof pi["model"] === "string" ? pi["model"] : undefined,
       thinking: typeof pi["thinking"] === "string" ? pi["thinking"] : undefined,
     },
+    postCheckout: rawPostCheckout as string[] | undefined,
   }
 }

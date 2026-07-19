@@ -38,6 +38,9 @@ This tool automates the mechanical parts. For each PR it:
 - **Live agent progress** — see tool calls (bash, read, edit, write) stream
   in real time as pi works.
 - **Session tracking** — each agent run prints a session ID for later review.
+- **Post-checkout hooks** — run shell commands automatically after each
+  checkout. Configure things like `npm install` or `make build` so your
+  branch is ready to work on immediately.
 
 ## Prerequisites
 
@@ -125,6 +128,7 @@ Config lives in `.pr-updater.yaml` (repo root) or `~/.pr-updater.yaml`.
 | `pi.provider` | yes | Provider name (e.g. `anthropic`, `openrouter`) |
 | `pi.model` | no | Model override (pi uses provider default) |
 | `pi.thinking` | no | Thinking budget: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
+| `postCheckout` | no | Array of shell commands to run after each successful checkout. Commands run via `sh -c`. Stops at first failure. |
 
 Commands are positional — the first array entry maps to menu key `1`, second
 to `2`, etc. There are no built-in commands; if you configure zero commands,

@@ -2,8 +2,9 @@ import { loadConfig, ConfigError } from "./config.ts"
 import { fetchOpenPRs, fetchPRStatus } from "./gh.ts"
 import { sortPRs } from "./order.ts"
 import { gitCheckout, countBehindBase } from "./git.ts"
+import { runPiCommand } from "./pi.ts"
 import { createLogger, type LoggerInstance } from "@levibostian/sh-style"
-import type { PR, CheckRun } from "./types.ts"
+import type { PR, CheckRun, Config } from "./types.ts"
 
 export type InputReader = () => string | null
 
@@ -56,6 +57,8 @@ function renderStatusPanel(
   behindCount: number,
   index: number,
   total: number,
+  commands: Config["commands"] = [],
+  ordered: string[] = [],
 ): void {
   const width = 72
   const sep = "=".repeat(width)
@@ -97,9 +100,23 @@ function renderStatusPanel(
     log.msg(`diffs:   ${pr.url}/files`)
   }
 
+  // Branch list (only if more than one branch)
+  if (ordered.length > 1) {
+    log.msg(subSep)
+    log.msg("Branches")
+    log.msg(subSep)
+    for (let i = 0; i < ordered.length; i++) {
+      const marker = i === index - 1 ? "\u2192" : " "
+      log.msg(`  ${marker} ${ordered[i]}`)
+    }
+  }
+
   log.msg(subSep)
   log.msg("Commands")
   log.msg(subSep)
+  for (let i = 0; i < commands.length; i++) {
+    log.msg(`  ${i + 1}  ${commands[i].label}`)
+  }
   log.msg("  c  Next branch")
   log.msg("  q  Quit")
 }
@@ -111,12 +128,13 @@ function renderStatusPanel(
 export interface InteractiveOptions {
   prs: PR[]
   ordered: string[]
+  config: Config
   inputReader?: InputReader
   logger?: LoggerInstance
 }
 
 export function interactiveMain(options: InteractiveOptions): void {
-  const { prs, ordered } = options
+  const { prs, ordered, config } = options
   const readInput = options.inputReader ?? readLine
   const log = options.logger ?? createLogger()
 
@@ -126,6 +144,7 @@ export function interactiveMain(options: InteractiveOptions): void {
   }
 
   const prByHead = new Map(prs.map((p) => [p.headRefName, p]))
+  const commands = config.commands
 
   for (let i = 0; i < ordered.length; i++) {
     const branch = ordered[i]
@@ -145,13 +164,39 @@ export function interactiveMain(options: InteractiveOptions): void {
     const behind = countBehindBase(status.headRefOid, status.baseRefName)
 
     // Display status panel
-    renderStatusPanel(log, { ...status, url: status.url }, behind, i + 1, ordered.length)
+    renderStatusPanel(
+      log,
+      { ...status, url: status.url },
+      behind,
+      i + 1,
+      ordered.length,
+      commands,
+      ordered,
+    )
 
     // Menu loop
     for (;;) {
       const input = readInput()
       if (input === null || input === "q") return
       if (input === "c") break
+
+      const cmdIndex = parseInt(input ?? "", 10) - 1
+      if (cmdIndex >= 0 && cmdIndex < commands.length) {
+        const sessionId = runPiCommand(commands[cmdIndex].prompt, config.pi)
+        if (sessionId) {
+          log.msg(`\u2713 Done. Session: ${sessionId}`)
+        }
+        // Re-render status panel
+        renderStatusPanel(
+          log,
+          { ...status, url: status.url },
+          behind,
+          i + 1,
+          ordered.length,
+          commands,
+          ordered,
+        )
+      }
     }
   }
 }
@@ -161,8 +206,9 @@ export function interactiveMain(options: InteractiveOptions): void {
 // ---------------------------------------------------------------------------
 
 function main() {
+  let config: Config
   try {
-    loadConfig()
+    config = loadConfig()
   } catch (err) {
     if (err instanceof ConfigError) {
       console.error(`error: ${err.message}`)
@@ -174,7 +220,7 @@ function main() {
   const prs = fetchOpenPRs()
   const ordered = sortPRs(prs)
 
-  interactiveMain({ prs, ordered })
+  interactiveMain({ prs, ordered, config })
 }
 
 if (import.meta.main) {

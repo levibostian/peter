@@ -2,7 +2,16 @@ import { assert } from "@std/assert"
 import { mockBin } from "@levibostian/mock-a-bin"
 import { createLogger, type Logger } from "@levibostian/sh-style"
 import { interactiveMain } from "./main.ts"
-import type { PR } from "./types.ts"
+import type { PR, Config } from "./types.ts"
+
+/** Default config fixture for tests. */
+const testConfig: Config = {
+  commands: [
+    { label: "Run tests", prompt: "Run the test suite" },
+    { label: "Run build", prompt: "Run the build" },
+  ],
+  pi: { provider: "anthropic" },
+}
 
 function makePR(overrides: Partial<PR> & { number: number; headRefName: string }): PR {
   return {
@@ -41,7 +50,7 @@ async function runWithMocks(
   const cleanupGit = await mockBin("git", "bash", gitScript)
 
   try {
-    interactiveMain({ prs, ordered, inputReader, logger })
+    interactiveMain({ prs, ordered, config: testConfig, inputReader, logger })
   } finally {
     cleanupGh()
     cleanupGit()
@@ -88,7 +97,7 @@ Deno.test("interactiveMain — no PRs exits quietly", () => {
   const { log: testLogger, lines } = captureLogger()
   const logger = createLogger({ logger: testLogger })
 
-  interactiveMain({ prs: [], ordered: [], inputReader: () => null, logger })
+  interactiveMain({ prs: [], ordered: [], config: testConfig, inputReader: () => null, logger })
 
   assert(lines.some((l) => l.includes("No open PRs")), "should print no PRs message")
 })
@@ -126,6 +135,12 @@ Deno.test("interactiveMain — multiple branches navigate with c", async () => {
   // Should show both branches
   assert(lines.some((l) => l.includes("(1/2)")), "panel should show 1/2 for first branch")
   assert(lines.some((l) => l.includes("(2/2)")), "panel should show 2/2 for second branch")
+
+  // Should show branch list with current indicator
+  const all = lines.join("\n")
+  assert(all.includes("Branches"), "panel should show branch list header")
+  assert(all.includes("\u2192 feat/a"), "first branch panel should mark feat/a as current")
+  assert(all.includes("  feat/b"), "first branch panel should show feat/b without marker")
 })
 
 Deno.test("interactiveMain — q exits early", async () => {
@@ -212,7 +227,7 @@ Deno.test("interactiveMain — menu re-prompts on invalid input", async () => {
   const cleanupGit = await mockBin("git", "bash", GIT_OK_SCRIPT)
 
   try {
-    interactiveMain({ prs, ordered: ["feat/a"], inputReader, logger })
+    interactiveMain({ prs, ordered: ["feat/a"], config: testConfig, inputReader, logger })
   } finally {
     cleanupGh()
     cleanupGit()
@@ -258,4 +273,44 @@ Deno.test("interactiveMain — processes all branches with navigation", async ()
 
   assert(lines.some((l) => l.includes("(1/2)")), "should process first branch")
   assert(lines.some((l) => l.includes("(2/2)")), "should process second branch")
+})
+
+Deno.test("interactiveMain — shows config commands in menu", async () => {
+  const prs = [
+    makePR({ number: 1, headRefName: "feat/a" }),
+  ]
+
+  const lines = await runWithMocks(prs, ["feat/a"], ["c"], ghScriptWithPRs(prs), GIT_OK_SCRIPT)
+
+  const all = lines.join("\n")
+  assert(all.includes("1  Run tests"), "should show first command label")
+  assert(all.includes("2  Run build"), "should show second command label")
+})
+
+Deno.test("interactiveMain — no commands shows navigation only", async () => {
+  const prs = [
+    makePR({ number: 1, headRefName: "feat/a" }),
+  ]
+
+  const inputReader = () => "c"
+  const { log: testLogger, lines } = captureLogger()
+  const logger = createLogger({ logger: testLogger })
+
+  const cleanupGh = await mockBin("gh", "bash", ghScriptWithPRs(prs))
+  const cleanupGit = await mockBin("git", "bash", GIT_OK_SCRIPT)
+
+  const emptyCmdsConfig = { ...testConfig, commands: [] }
+
+  try {
+    interactiveMain({ prs, ordered: ["feat/a"], config: emptyCmdsConfig, inputReader, logger })
+  } finally {
+    cleanupGh()
+    cleanupGit()
+  }
+
+  const all = lines.join("\n")
+  assert(all.includes("c  Next branch"), "should show next branch")
+  assert(all.includes("q  Quit"), "should show quit")
+  // No numbered commands should appear
+  assert(!all.includes("1  "), "should not show any numbered commands")
 })

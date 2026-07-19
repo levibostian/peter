@@ -17,7 +17,7 @@ function loadYaml(path: string): Record<string, unknown> | undefined {
   }
 }
 
-/** Load global config from ~/.pr-updater.yaml, local from ./.pr-updater.yaml, merge them.
+/** Load global config from ~/.peter.yaml, local from ./.peter.yaml, merge them.
  *
  * Arrays (commands, postCheckout) concatenate: global first, local second.
  * Pi fields merge individually: local can override model/thinking without
@@ -28,9 +28,9 @@ function loadYaml(path: string): Record<string, unknown> | undefined {
  */
 export function loadConfig(): Config {
   const home = Deno.env.get("HOME") ?? "~"
-  const globalRaw = loadYaml(`${home}/.pr-updater.yaml`)
-  const localRaw = loadYaml("./.pr-updater.yaml")
-  if (!globalRaw && !localRaw) throw new ConfigError("no .pr-updater.yaml found in repo root or home directory")
+  const globalRaw = loadYaml(`${home}/.peter.yaml`)
+  const localRaw = loadYaml("./.peter.yaml")
+  if (!globalRaw && !localRaw) throw new ConfigError("no .peter.yaml found in repo root or home directory")
 
   const merged: Record<string, unknown> = { ...(globalRaw ?? {}), ...(localRaw ?? {}) }
 

@@ -1,8 +1,8 @@
-# PR Updater v2
+# Peter
 
 Ship PRs faster. One agent session per fix, one branch at a time.
 
-PR Updater v2 is an interactive CLI that walks through your open GitHub PRs
+Peter is an interactive CLI that walks through your open GitHub PRs
 and runs [`pi`](https://github.com/earendil-works/pi-coding-agent) agent
 sessions to fix them. Think of it as a semi-automated PR workflow: the tool
 handles the context switching and status checks; you decide what to fix and
@@ -52,7 +52,7 @@ This tool automates the mechanical parts. For each PR it:
 
 ```bash
 # 1. Create a config file in your repo
-cat > .pr-updater.yaml << 'EOF'
+cat > .peter.yaml << 'EOF'
 commands:
   - label: Build & test
     prompt: |
@@ -119,7 +119,7 @@ Commands
 
 ## Configuration
 
-Config lives in `.pr-updater.yaml` (repo root) or `~/.pr-updater.yaml` (global).
+Config lives in `.peter.yaml` (repo root) or `~/.peter.yaml` (global).
 When both exist they merge: commands and postCheckout arrays concatenate
 global-first, pi fields merge individually so local can override
 `model`/`thinking` without repeating `provider`.
@@ -149,3 +149,7 @@ deno task start    # run the CLI
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for architecture and design
 details.
+
+## Why "peter"?
+
+This is a *PR updater*. Say it 3 times fast, kinda sounds like peter.

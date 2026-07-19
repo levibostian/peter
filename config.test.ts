@@ -4,7 +4,7 @@ import * as path from "node:path"
 import * as fs from "node:fs"
 
 function withTempDir(fn: (dir: string) => void) {
-  const dir = Deno.makeTempDirSync({ prefix: "pr-updater-test-" })
+  const dir = Deno.makeTempDirSync({ prefix: "peter-test-" })
   try {
     fn(dir)
   } finally {
@@ -12,10 +12,10 @@ function withTempDir(fn: (dir: string) => void) {
   }
 }
 
-/** Run code with HOME set to a dir that has no .pr-updater.yaml. */
+/** Run code with HOME set to a dir that has no .peter.yaml. */
 function withoutHomeConfig(fn: () => void) {
   const origHome = Deno.env.get("HOME")
-  Deno.env.set("HOME", "/tmp/pr-updater-test-nonexistent-home")
+  Deno.env.set("HOME", "/tmp/peter-test-nonexistent-home")
   try {
     fn()
   } finally {
@@ -32,7 +32,7 @@ Deno.test("loadConfig — loads from repo root only (no global)", () => {
 pi:
   provider: anthropic
 `
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), yaml)
 
     const origCwd = Deno.cwd()
     Deno.chdir(dir)
@@ -49,7 +49,7 @@ pi:
   })
 })
 
-Deno.test("loadConfig — falls back to ~/.pr-updater.yaml when no local config", () => {
+Deno.test("loadConfig — falls back to ~/.peter.yaml when no local config", () => {
   withTempDir((dir) => {
     const yaml = `commands:
   - label: Lint
@@ -57,7 +57,7 @@ Deno.test("loadConfig — falls back to ~/.pr-updater.yaml when no local config"
 pi:
   provider: openai
 `
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), yaml)
     Deno.env.set("HOME", dir)
 
     // Change to a dir without a repo-root config
@@ -99,8 +99,8 @@ pi:
 postCheckout:
   - npm install
 `
-    fs.writeFileSync(path.join(homeDir, ".pr-updater.yaml"), globalYaml)
-    fs.writeFileSync(path.join(repoDir, ".pr-updater.yaml"), localYaml)
+    fs.writeFileSync(path.join(homeDir, ".peter.yaml"), globalYaml)
+    fs.writeFileSync(path.join(repoDir, ".peter.yaml"), localYaml)
 
     Deno.env.set("HOME", homeDir)
     const origCwd = Deno.cwd()
@@ -133,7 +133,7 @@ Deno.test("loadConfig — only global config works", () => {
 pi:
   provider: anthropic
 `
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), yaml)
     Deno.env.set("HOME", dir)
 
     const repoDir = path.join(dir, "repo")
@@ -160,7 +160,7 @@ Deno.test("loadConfig — commands concatenated global then local", () => {
     fs.mkdirSync(repoDir)
 
     fs.writeFileSync(
-      path.join(homeDir, ".pr-updater.yaml"),
+      path.join(homeDir, ".peter.yaml"),
       `commands:
   - label: G1
     prompt: g1
@@ -171,7 +171,7 @@ pi:
 `,
     )
     fs.writeFileSync(
-      path.join(repoDir, ".pr-updater.yaml"),
+      path.join(repoDir, ".peter.yaml"),
       `commands:
   - label: L1
     prompt: l1
@@ -204,7 +204,7 @@ Deno.test("loadConfig — local pi fields override global", () => {
     fs.mkdirSync(repoDir)
 
     fs.writeFileSync(
-      path.join(homeDir, ".pr-updater.yaml"),
+      path.join(homeDir, ".peter.yaml"),
       `commands:
   - label: Test
     prompt: test
@@ -215,7 +215,7 @@ pi:
 `,
     )
     fs.writeFileSync(
-      path.join(repoDir, ".pr-updater.yaml"),
+      path.join(repoDir, ".peter.yaml"),
       `commands:
   - label: Test
     prompt: test
@@ -250,7 +250,7 @@ Deno.test("loadConfig — errors when no config found", () => {
       assertThrows(
         () => loadConfig(),
         ConfigError,
-        "no .pr-updater.yaml found",
+        "no .peter.yaml found",
       )
     } finally {
       Deno.chdir(origCwd)
@@ -269,7 +269,7 @@ postCheckout:
   - npm install
   - npm run build
 `
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), yaml)
     const origCwd = Deno.cwd()
     Deno.chdir(dir)
     try {
@@ -291,7 +291,7 @@ Deno.test("loadConfig — postCheckout is optional", () => {
 pi:
   provider: anthropic
 `
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), yaml)
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), yaml)
     const origCwd = Deno.cwd()
     Deno.chdir(dir)
     try {
@@ -307,7 +307,7 @@ pi:
 
 Deno.test("loadConfig — errors on YAML parse failure", () => {
   withTempDir((dir) => {
-    fs.writeFileSync(path.join(dir, ".pr-updater.yaml"), "{{invalid")
+    fs.writeFileSync(path.join(dir, ".peter.yaml"), "{{invalid")
     Deno.env.set("HOME", dir)
     const origCwd = Deno.cwd()
     Deno.chdir(dir)

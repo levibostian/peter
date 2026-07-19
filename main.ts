@@ -92,7 +92,7 @@ function renderStatusPanel(
   const subSep = "-".repeat(width)
 
   log.msg(sep)
-  log.msg(`         PR #${pr.number} — ${pr.headRefName} (${index}/${total})`)
+  log.msg(`         PR #${pr.number} — ${pr.headRefName} → ${pr.baseRefName} (${index}/${total})`)
   log.msg(sep)
 
   // Checks

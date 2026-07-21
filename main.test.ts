@@ -261,6 +261,64 @@ Deno.test("interactiveMain — panel shows check details", async () => {
   assert(all.includes("lint"), "should show lint check")
   assert(all.includes("build"), "should show build check")
   assert(all.includes("e2e"), "should show e2e check")
+  assert(all.includes("✗ changes requested"), "should show changes requested review")
+  assert(all.includes("✓ approved"), "should show approved review")
+})
+
+Deno.test("interactiveMain — review shows none requested when no reviewers", async () => {
+  const prs = [
+    makePR({ number: 1, headRefName: "feat/a" }),
+  ]
+
+  const lines = await runWithMocks(prs, ["feat/a"], ["c"], ghScriptWithPRs(prs), GIT_OK_SCRIPT)
+
+  const all = lines.join("\n")
+  assert(all.includes("none requested"), "should show none requested when no reviewers assigned")
+})
+
+Deno.test("interactiveMain — review shows waiting when reviewers assigned but no action", async () => {
+  const prs = [
+    makePR({
+      number: 1,
+      headRefName: "feat/a",
+      reviewRequests: [
+        { __typename: "User", login: "alice" },
+        { __typename: "User", login: "bob" },
+      ],
+    }),
+  ]
+
+  const lines = await runWithMocks(prs, ["feat/a"], ["c"], ghScriptWithPRs(prs), GIT_OK_SCRIPT)
+
+  const all = lines.join("\n")
+  assert(all.includes("⏳ waiting"), "should show waiting indicator")
+  assert(all.includes("alice"), "should show alice as waiting")
+  assert(all.includes("bob"), "should show bob as waiting")
+})
+
+Deno.test("interactiveMain — review filters out acted reviewers from waiting list", async () => {
+  const prs = [
+    makePR({
+      number: 1,
+      headRefName: "feat/a",
+      reviews: [
+        { state: "APPROVED", author: "alice" },
+      ],
+      reviewRequests: [
+        { __typename: "User", login: "alice" },
+        { __typename: "User", login: "bob" },
+      ],
+    }),
+  ]
+
+  const lines = await runWithMocks(prs, ["feat/a"], ["c"], ghScriptWithPRs(prs), GIT_OK_SCRIPT)
+
+  const all = lines.join("\n")
+  assert(all.includes("✓ approved"), "should show alice's approval")
+  assert(all.includes("⏳ waiting"), "should show waiting indicator")
+  assert(all.includes("bob"), "should show bob as waiting")
+  // alice already acted, so bob is the only one in waiting list
+  assert(!all.match(/waiting:.*alice/), "should NOT show alice as waiting since she approved")
 })
 
 Deno.test("interactiveMain — processes all branches with navigation", async () => {

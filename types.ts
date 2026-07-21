@@ -15,6 +15,7 @@ export interface PR {
   headRefOid: string
   statusCheckRollup: CheckRun[]
   reviews: Review[]
+  reviewRequests?: { __typename: string; login?: string; name?: string }[]
   mergeable: MergeableState
   url?: string
 }

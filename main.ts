@@ -93,17 +93,34 @@ function renderStatusPanel(
   log.msg(`behind:  ${behindCount} commit${behindCount === 1 ? "" : "s"} behind ${pr.baseRefName}`)
 
   // Reviews
+  // Reviews — always show section
   const reviews = pr.reviews ?? []
-  if (reviews.length > 0) {
-    const hasChanges = reviews.some((r) => r.state === "CHANGES_REQUESTED")
-    const hasApproved = reviews.some((r) => r.state === "APPROVED")
-    const pending = reviews.filter((r) => (r.state as string) === "PENDING" || r.state === null).length
-    const parts: string[] = []
-    if (hasChanges) parts.push("✗ changes requested")
-    if (hasApproved) parts.push("✓ approved")
-    if (pending > 0) parts.push(`⚠ ${pending} pending`)
-    log.msg(`review:  ${parts.join(", ")}`)
+  const reviewRequests = pr.reviewRequests ?? []
+  const parts: string[] = []
+
+  // Submitted reviews (existing logic)
+  const hasChanges = reviews.some((r) => r.state === "CHANGES_REQUESTED")
+  const hasApproved = reviews.some((r) => r.state === "APPROVED")
+  const pending = reviews.filter((r) => (r.state as string) === "PENDING" || r.state === null).length
+  if (hasChanges) parts.push("✗ changes requested")
+  if (hasApproved) parts.push("✓ approved")
+  if (pending > 0) parts.push(`⚠ ${pending} pending`)
+
+  // Requested reviewers who haven't submitted a review yet
+  const actedAuthors = new Set(reviews.map((r) => r.author))
+  const waiting = reviewRequests
+    .map((rr) => rr.login ?? rr.name)
+    .filter((r): r is string => r !== undefined && !actedAuthors.has(r))
+  if (waiting.length > 0) {
+    parts.push(`⏳ waiting: ${waiting.join(", ")}`)
   }
+
+  // Nothing at all
+  if (parts.length === 0) {
+    parts.push("none requested")
+  }
+
+  log.msg(`review:  ${parts.join(" | ")}`)
 
   // Diffs link
   if (pr.url) {

@@ -28,7 +28,7 @@ export function fetchOpenPRs(): PR[] {
   const json = gh([
     "pr", "list",
     "--author", "@me",
-    "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,mergeable",
+    "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,reviewRequests,mergeable",
   ])
   if (json === "") return []
   return (JSON.parse(json) as PR[]).map((pr) => ({
@@ -41,7 +41,7 @@ export function fetchOpenPRs(): PR[] {
 export function fetchPRStatus(number: number): PR {
   const json = gh([
     "pr", "view", String(number),
-    "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,mergeable,url",
+    "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,reviewRequests,mergeable,url",
   ])
   const pr = JSON.parse(json) as PR
   pr.statusCheckRollup = normalizeChecks(pr.statusCheckRollup as unknown as unknown[])

@@ -180,6 +180,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
   const { prs, ordered, config } = options
   const reader = options.inputReader ?? readInput
   const log = options.logger ?? createLogger()
+  const originalCwd = Deno.cwd()
 
   if (prs.length === 0) {
     log.msg("No open PRs")
@@ -194,10 +195,14 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
     const pr = prByHead.get(branch)
     if (!pr) continue
 
-    // Resolve worktree directory (if branch is checked out in another worktree)
+    // Resolve worktree directory. If branch is checked out in another
+    // worktree, chdir there. If not in any worktree, go back to where
+    // the CLI started so we don't linger in a stale worktree directory.
     const worktreeDir = findWorktreeDir(branch)
     if (worktreeDir && Deno.cwd() !== worktreeDir) {
       Deno.chdir(worktreeDir)
+    } else if (!worktreeDir && Deno.cwd() !== originalCwd) {
+      Deno.chdir(originalCwd)
     }
 
     // Checkout

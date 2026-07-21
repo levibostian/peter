@@ -423,3 +423,54 @@ Deno.test("interactiveMain — runs post-checkout commands after checkout", asyn
   // Test by verifying the flow completed (PR panel shown)
   assert(lines.some((l) => l.includes("PR #1")), "should process PR after post-checkout")
 })
+
+Deno.test("interactiveMain — returns to original CWD after worktree branch followed by non-worktree branch", async () => {
+  const originalCwd = Deno.cwd()
+  const worktreeDir = Deno.makeTempDirSync()
+
+  try {
+    const prs = [
+      makePR({ number: 1, headRefName: "feat/worktree" }),
+      makePR({ number: 2, headRefName: "feat/normal" }),
+    ]
+
+    // Mock git so that feat/worktree has a worktree entry pointing to
+    // worktreeDir, but feat/normal has no worktree entry.
+    const gitScript = `
+      case "$1" in
+        worktree)
+          if [ "$2" = "list" ] && [ "$3" = "--porcelain" ]; then
+            cat <<'EOF'
+worktree ${worktreeDir}
+HEAD abc1234567890abcdef1234567890abcdef123456
+branch refs/heads/feat/worktree
+EOF
+            exit 0
+          fi
+          exit 1
+          ;;
+        checkout) exit 0 ;;
+        fetch) exit 0 ;;
+        rev-list) echo "0"; exit 0 ;;
+        *) exit 1 ;;
+      esac
+    `
+
+    await runWithMocks(
+      prs,
+      ["feat/worktree", "feat/normal"],
+      ["c", "c"],
+      ghScriptWithPRs(prs),
+      gitScript,
+    )
+
+    // After processing feat/normal (no worktree), the code should have
+    // chdir'd back to the directory where the CLI started.
+    assert(
+      Deno.cwd() === originalCwd,
+      "CWD should be restored to original after non-worktree branch",
+    )
+  } finally {
+    Deno.removeSync(worktreeDir, { recursive: true })
+  }
+})

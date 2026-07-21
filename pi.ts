@@ -55,6 +55,7 @@ export async function runPiCommand(
       try { event = JSON.parse(line); } catch { continue; }
       if (event.type === "session" && typeof event.id === "string") {
         sessionId = event.id;
+        writeLine(`Session: ${sessionId}`);
       }
       textBuffer = showProgress(event, textBuffer);
     }

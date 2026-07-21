@@ -243,7 +243,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
       if (cmdIndex >= 0 && cmdIndex < commands.length) {
         const sessionId = await runPiCommand(commands[cmdIndex].prompt, config.pi)
         if (sessionId) {
-          log.msg(`\u2713 Done. Session: ${sessionId}`)
+          log.msg(`\u2713 Done`)
         }
         // Re-render status panel
         renderStatusPanel(

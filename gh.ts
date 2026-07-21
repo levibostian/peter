@@ -27,6 +27,7 @@ function normalizeChecks(items: unknown[]): CheckRun[] {
 export function fetchOpenPRs(): PR[] {
   const json = gh([
     "pr", "list",
+    "--author", "@me",
     "--json", "number,headRefName,baseRefName,headRefOid,statusCheckRollup,reviews,mergeable",
   ])
   if (json === "") return []

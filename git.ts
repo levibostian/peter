@@ -3,9 +3,13 @@ export function gitCheckout(branch: string): boolean {
   const cmd = new Deno.Command("git", {
     args: ["checkout", branch],
     stdout: "null",
-    stderr: "null",
+    stderr: "piped",
   })
   const out = cmd.outputSync()
+  if (!out.success) {
+    const err = new TextDecoder().decode(out.stderr).trim()
+    if (err) console.warn(`git error: ${err}`)
+  }
   return out.success
 }
 

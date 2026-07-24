@@ -30,6 +30,12 @@ export interface Review {
   author: string
 }
 
+export interface ReviewThreadCounts {
+  total: number
+  resolved: number
+  unresolved: number
+}
+
 /** User-configured command from YAML. */
 export interface Command {
   label: string

@@ -71,12 +71,21 @@ function ghScriptWithPRs(prs: PR[]): string {
   return `
     case "$1-$2" in
       "pr-list") echo '[]' ;;
-      "repo-view") echo '{"defaultBranch":"main"}' ;;
+      "repo-view")
+        if [ "$4" = "nameWithOwner" ]; then
+          echo '{"nameWithOwner":"org/repo"}'
+        else
+          echo '{"defaultBranch":"main"}'
+        fi
+        ;;
       "pr-view")
         case "$3" in
 ${viewCases}
           *) echo '{}' ;;
         esac
+        ;;
+      "api-graphql")
+        echo '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}'
         ;;
       *) echo '{}' ;;
     esac

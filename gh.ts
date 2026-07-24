@@ -1,4 +1,4 @@
-import type { CheckRun, PR } from "./types.ts"
+import type { CheckRun, PR, ReviewThreadCounts } from "./types.ts"
 
 /** Run a gh CLI command and return stdout as string. Throws on non-zero exit. */
 function gh(args: string[]): string {
@@ -35,6 +35,23 @@ export function fetchOpenPRs(): PR[] {
     ...pr,
     statusCheckRollup: normalizeChecks(pr.statusCheckRollup as unknown as unknown[]),
   }))
+}
+
+/** Get the current repo owner/name from gh. */
+function getRepoOwnerName(): [string, string] {
+  const json = JSON.parse(gh(["repo", "view", "--json", "nameWithOwner"]))
+  return (json.nameWithOwner as string).split("/") as [string, string]
+}
+
+/** Fetch resolved/unresolved review thread counts for a PR. */
+export function fetchReviewThreadCounts(prNumber: number): ReviewThreadCounts {
+  const [owner, name] = getRepoOwnerName()
+  const query = `query($owner:String!,$repo:String!,$pr:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviewThreads(first:100){nodes{isResolved}}}}}`
+  const result = JSON.parse(gh(["api", "graphql", "-f", `query=${query}`, "-F", `owner=${owner}`, "-F", `repo=${name}`, "-F", `pr=${prNumber}`]))
+  const nodes = result.data?.repository?.pullRequest?.reviewThreads?.nodes ?? []
+  const resolved = nodes.filter((n: { isResolved: boolean }) => n.isResolved).length
+  const unresolved = nodes.filter((n: { isResolved: boolean }) => !n.isResolved).length
+  return { total: nodes.length, resolved, unresolved }
 }
 
 /** Fetch enriched status for a specific PR number. */

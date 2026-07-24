@@ -1,10 +1,10 @@
 import { loadConfig, ConfigError } from "./config.ts"
-import { fetchOpenPRs, fetchPRStatus } from "./gh.ts"
+import { fetchOpenPRs, fetchPRStatus, fetchReviewThreadCounts } from "./gh.ts"
 import { sortPRs } from "./order.ts"
 import { gitCheckout, countBehindBase, findWorktreeDir } from "./git.ts"
 import { runPiCommand } from "./pi.ts"
 import { createLogger, type LoggerInstance } from "@levibostian/sh-style"
-import type { PR, CheckRun, Config } from "./types.ts"
+import type { PR, CheckRun, Config, ReviewThreadCounts } from "./types.ts"
 
 export type InputReader = () => string | null
 
@@ -69,6 +69,7 @@ function renderStatusPanel(
   total: number,
   commands: Config["commands"] = [],
   ordered: string[] = [],
+  threadCounts?: { total: number; resolved: number; unresolved: number },
 ): void {
   const width = 72
   const sep = "=".repeat(width)
@@ -121,6 +122,11 @@ function renderStatusPanel(
   }
 
   log.msg(`review:  ${parts.join(" | ")}`)
+
+  // Conversations (review threads)
+  if (threadCounts && threadCounts.total > 0) {
+    log.msg(`convos:  ${threadCounts.resolved} resolved, ${threadCounts.unresolved} unresolved`)
+  }
 
   // Diffs link
   if (pr.url) {
@@ -223,6 +229,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
     let behind = countBehindBase(status.headRefOid, status.baseRefName)
 
     // Display status panel
+    const threadCounts = fetchReviewThreadCounts(pr.number)
     renderStatusPanel(
       log,
       { ...status, url: status.url },
@@ -231,6 +238,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
       ordered.length,
       commands,
       ordered,
+      threadCounts,
     )
 
     // Menu loop
@@ -243,6 +251,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
         // Refresh current PR state
         status = fetchPRStatus(pr.number)
         behind = countBehindBase(status.headRefOid, status.baseRefName)
+        const refThreadCounts = fetchReviewThreadCounts(pr.number)
         renderStatusPanel(
           log,
           { ...status, url: status.url },
@@ -251,6 +260,7 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
           ordered.length,
           commands,
           ordered,
+          refThreadCounts,
         )
         continue
       }

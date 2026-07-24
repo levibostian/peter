@@ -139,7 +139,7 @@ function renderStatusPanel(
 
   log.msg(subSep + "\n" + "Commands" + "\n" + subSep)
   const cmdLines = commands.map((c, i) => `  ${i + 1}  ${c.label}`)
-  cmdLines.push("  c  Next branch", "  q  Quit")
+  cmdLines.push("  r  Refresh", "  c  Next branch", "  q  Quit")
   log.msg(cmdLines.join("\n"))
 }
 
@@ -217,10 +217,10 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
     }
 
     // Fetch fresh PR status
-    const status = fetchPRStatus(pr.number)
+    let status = fetchPRStatus(pr.number)
 
     // Compute behind-base
-    const behind = countBehindBase(status.headRefOid, status.baseRefName)
+    let behind = countBehindBase(status.headRefOid, status.baseRefName)
 
     // Display status panel
     renderStatusPanel(
@@ -238,6 +238,22 @@ export async function interactiveMain(options: InteractiveOptions): Promise<void
       const input = reader()
       if (input === null || input === "q") return
       if (input === "c") break
+
+      if (input === "r") {
+        // Refresh current PR state
+        status = fetchPRStatus(pr.number)
+        behind = countBehindBase(status.headRefOid, status.baseRefName)
+        renderStatusPanel(
+          log,
+          { ...status, url: status.url },
+          behind,
+          i + 1,
+          ordered.length,
+          commands,
+          ordered,
+        )
+        continue
+      }
 
       const cmdIndex = parseInt(input ?? "", 10) - 1
       if (cmdIndex >= 0 && cmdIndex < commands.length) {
